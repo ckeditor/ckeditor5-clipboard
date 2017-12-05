@@ -10,10 +10,9 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
 import ClipboardObserver from './clipboardobserver';
-
-import plainTextToHtml from './utils/plaintexttohtml';
-import normalizeClipboardHtml from './utils/normalizeclipboarddata';
-import viewToPlainText from './utils/viewtoplaintext.js';
+import PasteCommand from './pastecommand';
+import CopyCommand from './copycommand';
+import CutCommand from './cutcommand';
 
 import HtmlDataProcessor from '@ckeditor/ckeditor5-engine/src/dataprocessor/htmldataprocessor';
 
@@ -118,8 +117,15 @@ export default class Clipboard extends Plugin {
 	 */
 	init() {
 		const editor = this.editor;
-		const doc = editor.document;
 		const editingView = editor.editing.view;
+
+		const pasteCommand = new PasteCommand( editor );
+		const cutCommand = new CutCommand( editor );
+		const copyCommand = new CopyCommand( editor );
+
+		editor.commands.add( 'paste', pasteCommand );
+		editor.commands.add( 'copy', copyCommand );
+		editor.commands.add( 'cut', cutCommand );
 
 		/**
 		 * Data processor used to convert pasted HTML to a view structure.
@@ -131,85 +137,16 @@ export default class Clipboard extends Plugin {
 
 		editingView.addObserver( ClipboardObserver );
 
-		// The clipboard paste pipeline.
-
-		this.listenTo( editingView, 'clipboardInput', ( evt, data ) => {
-			// Pasting and dropping is disabled when editor is read-only.
-			// See: https://github.com/ckeditor/ckeditor5-clipboard/issues/26.
-			if ( editor.isReadOnly ) {
-				return;
-			}
-
-			const dataTransfer = data.dataTransfer;
-			let content = '';
-
-			if ( dataTransfer.getData( 'text/html' ) ) {
-				content = normalizeClipboardHtml( dataTransfer.getData( 'text/html' ) );
-			} else if ( dataTransfer.getData( 'text/plain' ) ) {
-				content = plainTextToHtml( dataTransfer.getData( 'text/plain' ) );
-			}
-
-			content = this._htmlDataProcessor.toView( content );
-
-			this.fire( 'inputTransformation', { content } );
-
-			editingView.scrollToTheSelection();
+		this.listenTo( editingView, 'paste', ( evt, data ) => {
+			pasteCommand.execute( data );
 		}, { priority: 'low' } );
 
-		this.listenTo( this, 'inputTransformation', ( evt, data ) => {
-			if ( !data.content.isEmpty ) {
-				const dataController = this.editor.data;
-				const batch = doc.batch();
-
-				// Convert the pasted content to a model document fragment.
-				// Conversion is contextual, but in this case we need an "all allowed" context and for that
-				// we use the $clipboardHolder item.
-				const modelFragment = dataController.toModel( data.content, batch, '$clipboardHolder' );
-
-				if ( modelFragment.childCount == 0 ) {
-					return;
-				}
-
-				doc.enqueueChanges( () => {
-					dataController.insertContent( modelFragment, doc.selection, batch );
-				} );
-			}
+		this.listenTo( editingView, 'copy', ( evt, data ) => {
+			copyCommand.execute( data );
 		}, { priority: 'low' } );
 
-		// The clipboard copy/cut pipeline.
-
-		function onCopyCut( evt, data ) {
-			const batch = doc.batch();
-			const dataTransfer = data.dataTransfer;
-			const content = editor.data.toView( editor.data.getSelectedContent( doc.selection, batch ) );
-
-			data.preventDefault();
-
-			editingView.fire( 'clipboardOutput', { dataTransfer, content, method: evt.name, batch } );
-		}
-
-		this.listenTo( editingView, 'copy', onCopyCut, { priority: 'low' } );
 		this.listenTo( editingView, 'cut', ( evt, data ) => {
-			// Cutting is disabled when editor is read-only.
-			// See: https://github.com/ckeditor/ckeditor5-clipboard/issues/26.
-			if ( editor.isReadOnly ) {
-				data.preventDefault();
-			} else {
-				onCopyCut( evt, data );
-			}
-		}, { priority: 'low' } );
-
-		this.listenTo( editingView, 'clipboardOutput', ( evt, data ) => {
-			if ( !data.content.isEmpty ) {
-				data.dataTransfer.setData( 'text/html', this._htmlDataProcessor.toData( data.content ) );
-				data.dataTransfer.setData( 'text/plain', viewToPlainText( data.content ) );
-			}
-
-			if ( data.method == 'cut' ) {
-				doc.enqueueChanges( () => {
-					editor.data.deleteContent( doc.selection, data.batch );
-				} );
-			}
+			cutCommand.execute( data );
 		}, { priority: 'low' } );
 	}
 }

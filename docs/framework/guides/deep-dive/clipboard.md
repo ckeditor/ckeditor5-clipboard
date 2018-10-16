@@ -72,8 +72,8 @@ editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
 	if ( data.content.childCount == 1 && isUrlText( data.content.getChild( 0 ) ) ) {
 		const linkUrl = data.content.getChild( 0 ).data;
 
-		data.content = new ViewDocumentFragment( [
-			ViewElement(
+		data.content = upcastWriter.createDocumentFragment( [
+			upcastWriter.createElement(
 				'a',
 				{ href: linkUrl },
 				[ new ViewText( linkUrl ) ]

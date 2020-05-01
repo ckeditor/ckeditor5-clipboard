@@ -1,6 +1,10 @@
 CKEditor 5 clipboard feature
 ========================================
 
+<h3 align=center>⚠⚠ This repository was moved ⚠⚠</h3>
+
+<p align=center>The package was moved to the <a href="https://github.com/ckeditor/ckeditor5/tree/master/packages">main repository</a>.</p>
+
 [![npm version](https://badge.fury.io/js/%40ckeditor%2Fckeditor5-clipboard.svg)](https://www.npmjs.com/package/@ckeditor/ckeditor5-clipboard)
 [![Dependency Status](https://david-dm.org/ckeditor/ckeditor5-clipboard/status.svg)](https://david-dm.org/ckeditor/ckeditor5-clipboard)
 [![devDependency Status](https://david-dm.org/ckeditor/ckeditor5-clipboard/dev-status.svg)](https://david-dm.org/ckeditor/ckeditor5-clipboard?type=dev)
